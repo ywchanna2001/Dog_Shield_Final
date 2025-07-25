@@ -1,0 +1,34 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "dogshield_ai",
+            "cwd": "d:\\Desktop\\dogshield_ai\\Pet_Care_App_FE",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "args": [
+                "--flavor",
+                "development",
+                "--target",
+                "lib/main.dart"
+            ]
+        },
+        {
+            "name": "dogshield_ai (profile mode)",
+            "cwd": "d:\\Desktop\\dogshield_ai\\Pet_Care_App_FE",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile",
+            "program": "lib/main.dart"
+        },
+        {
+            "name": "dogshield_ai (release mode)",
+            "cwd": "d:\\Desktop\\dogshield_ai\\Pet_Care_App_FE",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "program": "lib/main.dart"
+        }
+    ]
+}

@@ -1,0 +1,6 @@
+// This is a placeholder for the app logo image
+// In a real application, you would replace this with actual image files such as:
+// logo.png, logo@2x.png, logo@3x.png
+//
+// To use SVG, place a logo.svg file in this directory
+// Make sure to use the appropriate Flutter library to load the image type you choose 

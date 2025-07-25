@@ -1,0 +1,24 @@
+{
+    "dart.flutterSdkPath": null,
+    "dart.lineLength": 120,
+    "dart.closingLabels": true,
+    "dart.insertArgumentPlaceholders": true,
+    "dart.showTodos": true,
+    "dart.renameFilesWithClasses": "prompt",
+    "dart.warnWhenEditingFilesOutsideWorkspace": true,
+    "dart.allowAnalytics": false,
+    "dart.checkForSdkUpdates": true,
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "editor.rulers": [
+        120
+    ],
+    "editor.selectionHighlight": false,
+    "editor.suggest.snippetsPreventQuickSuggestions": false,
+    "editor.suggestSelection": "first",
+    "editor.tabCompletion": "onlySnippets",
+    "editor.wordBasedSuggestions": "off",
+    "flutter.previewHotReloadOnSaveWatcher": true,
+    "flutter.debugExternalPackageLibraries": false,
+    "flutter.debugSdkLibraries": false
+}

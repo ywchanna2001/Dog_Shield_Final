@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow authenticated users to read and write their own user document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Allow users to read and write their own pets
+    match /pets/{petId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.ownerId;
+      // For creating new pets
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.ownerId;
+    }
+    
+    // Allow users to read and write their own reminders
+    match /reminders/{reminderId} {
+      allow read, write: if request.auth != null && 
+        (resource == null || 
+         exists(/databases/$(database)/documents/pets/$(resource.data.petId)) && 
+         get(/databases/$(database)/documents/pets/$(resource.data.petId)).data.ownerId == request.auth.uid);
+      
+      // For creating new reminders
+      allow create: if request.auth != null && 
+        exists(/databases/$(database)/documents/pets/$(request.resource.data.petId)) && 
+        get(/databases/$(database)/documents/pets/$(request.resource.data.petId)).data.ownerId == request.auth.uid;
+    }
+    
+    // Allow users to read and write their own detection history
+    match /detection_history/{historyId} {
+      allow read, write: if request.auth != null && 
+        (resource == null || 
+         exists(/databases/$(database)/documents/pets/$(resource.data.petId)) && 
+         get(/databases/$(database)/documents/pets/$(resource.data.petId)).data.ownerId == request.auth.uid);
+      
+      // For creating new detection history
+      allow create: if request.auth != null && 
+        exists(/databases/$(database)/documents/pets/$(request.resource.data.petId)) && 
+        get(/databases/$(database)/documents/pets/$(request.resource.data.petId)).data.ownerId == request.auth.uid;
+    }
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+} 

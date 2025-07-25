@@ -1,0 +1,113 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Flutter: Run App",
+            "type": "shell",
+            "command": "flutter",
+            "args": [
+                "run",
+                "--hot"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "flutter",
+                "pattern": [
+                    {
+                        "regexp": "^lib\\/(.*?):(\\d+):(\\d+):\\s+(warning|error)\\s+(.*)$",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "severity": 4,
+                        "message": 5
+                    }
+                ]
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "Flutter: Debug App",
+            "type": "shell",
+            "command": "flutter",
+            "args": [
+                "run",
+                "--debug"
+            ],
+            "group": "build",
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "flutter",
+                "pattern": [
+                    {
+                        "regexp": "^lib\\/(.*?):(\\d+):(\\d+):\\s+(warning|error)\\s+(.*)$",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "severity": 4,
+                        "message": 5
+                    }
+                ]
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "Flutter: Build APK",
+            "type": "shell",
+            "command": "flutter",
+            "args": [
+                "build",
+                "apk",
+                "--debug"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "Flutter: Clean",
+            "type": "shell",
+            "command": "flutter",
+            "args": [
+                "clean"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "Flutter: Get Dependencies",
+            "type": "shell",
+            "command": "flutter",
+            "args": [
+                "pub",
+                "get"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "Flutter: Analyze",
+            "type": "shell",
+            "command": "flutter",
+            "args": [
+                "analyze"
+            ],
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        }
+    ]
+}
