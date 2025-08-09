@@ -35,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = '';
@@ -57,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // Sort by date (most recent first)
       recentActivities.sort((a, b) => b.date.compareTo(a.date));
 
+      if (!mounted) return;
       setState(() {
         _pets = pets;
         _upcomingReminders = reminders;
@@ -64,11 +66,18 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = e.toString();
         _isLoading = false;
       });
     }
+  }
+
+  @override
+  void dispose() {
+    // In case future callbacks try to setState after dispose
+    super.dispose();
   }
 
   @override
@@ -80,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () {
-              // TODO: Navigate to notifications screen
+              Navigator.pushNamed(context, AppConstants.notificationsRoute);
             },
           ),
         ],

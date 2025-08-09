@@ -258,66 +258,6 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
     }
   }
 
-  void _showAddReminderBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder:
-          (context) => Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Add Reminder', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 20),
-                  Wrap(
-                    spacing: 10,
-                    children: [
-                      _buildReminderTypeButton(
-                        icon: Icons.medication,
-                        label: 'Medication',
-                        type: AppConstants.typeMedication,
-                      ),
-                      _buildReminderTypeButton(
-                        icon: Icons.restaurant,
-                        label: 'Feeding',
-                        type: AppConstants.typeFeeding,
-                      ),
-                      _buildReminderTypeButton(
-                        icon: Icons.healing,
-                        label: 'Vaccination',
-                        type: AppConstants.typeVaccination,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ),
-    );
-  }
-
-  Widget _buildReminderTypeButton({required IconData icon, required String label, required String type}) {
-    return ElevatedButton.icon(
-      onPressed: () {
-        Navigator.pop(context);
-        Navigator.pushNamed(
-          context,
-          AppConstants.addReminderRoute,
-          arguments: {'petId': _pet.id, 'petName': _pet.name, 'reminderType': type},
-        ).then((_) => _loadReminders());
-      },
-      icon: Icon(icon),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -326,10 +266,6 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
         actions: [if (!_isEditing) IconButton(icon: const Icon(Icons.edit), onPressed: _toggleEditing)],
       ),
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : _buildBody(),
-      floatingActionButton:
-          !_isEditing && _tabController.index == 1
-              ? FloatingActionButton(onPressed: _showAddReminderBottomSheet, child: const Icon(Icons.add))
-              : null,
     );
   }
 
@@ -448,13 +384,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
             const SizedBox(height: 16),
             const Text('No reminders set', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text('Add reminders for ${_pet.name}\'s care', style: TextStyle(color: Colors.grey[600])),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: _showAddReminderBottomSheet,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Reminder'),
-            ),
+            Text('${_pet.name} has no reminders yet', style: TextStyle(color: Colors.grey[600])),
           ],
         ),
       );
@@ -507,50 +437,41 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 1,
-      child: InkWell(
-        onTap: () {
-          Navigator.pushNamed(
-            context,
-            AppConstants.editReminderRoute,
-            arguments: reminder,
-          ).then((_) => _loadReminders());
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              CircleAvatar(backgroundColor: iconColor.withOpacity(0.1), child: Icon(iconData, color: iconColor)),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      reminder.title,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        decoration: reminder.isCompleted ? TextDecoration.lineThrough : null,
-                      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            CircleAvatar(backgroundColor: iconColor.withOpacity(0.1), child: Icon(iconData, color: iconColor)),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    reminder.title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      decoration: reminder.isCompleted ? TextDecoration.lineThrough : null,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      DateFormat('MMM d, y - h:mm a').format(reminder.date),
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    DateFormat('MMM d, y - h:mm a').format(reminder.date),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  ),
+                ],
               ),
-              Checkbox(
-                value: reminder.isCompleted,
-                onChanged: (value) {
-                  if (value != null) {
-                    _reminderService.updateReminderStatus(reminder.id, value).then((_) => _loadReminders());
-                  }
-                },
-              ),
-            ],
-          ),
+            ),
+            Checkbox(
+              value: reminder.isCompleted,
+              onChanged: (value) {
+                if (value != null) {
+                  _reminderService.updateReminderStatus(reminder.id, value).then((_) => _loadReminders());
+                }
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -566,255 +487,260 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
     return Form(
       key: _formKey,
       child: SingleChildScrollView(
-        // The padding is moved to the Container below.
-        child: Container(
-          // This line is the crucial fix. It provides a definitive, finite width
-          // to the scrolling content, which prevents the layout error.
-          width: MediaQuery.of(context).size.width,
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Pet Image
-              GestureDetector(
-                onTap: () {
-                  showModalBottomSheet(context: context, builder: (context) => _buildImageSourceSelection());
-                },
-                child: Center(
-                  child: Stack(
-                    children: [
-                      CircleAvatar(
-                        radius: 60,
-                        backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
-                        backgroundImage:
-                            _newPetImage != null
-                                ? FileImage(_newPetImage!)
-                                : _pet.imageUrl != null
-                                ? NetworkImage(_pet.imageUrl!)
-                                : null,
-                        child:
-                            _newPetImage == null && _pet.imageUrl == null
-                                ? Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.pets, size: 40, color: AppTheme.primaryColor),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Add Photo',
-                                      style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.w500),
-                                    ),
-                                  ],
-                                )
-                                : null,
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: CircleAvatar(
-                          radius: 18,
-                          backgroundColor: AppTheme.primaryColor,
-                          child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
+        padding: const EdgeInsets.all(16.0),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            // Provide only a maxWidth to avoid forcing infinite/overly tight constraints
+            constraints: BoxConstraints(
+              maxWidth: 600, // keeps layout sane on tablets/landscape
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Pet Image
+                GestureDetector(
+                  onTap: () {
+                    showModalBottomSheet(context: context, builder: (context) => _buildImageSourceSelection());
+                  },
+                  child: Center(
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 60,
+                          backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                          backgroundImage:
+                              _newPetImage != null
+                                  ? FileImage(_newPetImage!)
+                                  : _pet.imageUrl != null
+                                  ? NetworkImage(_pet.imageUrl!)
+                                  : null,
+                          child:
+                              _newPetImage == null && _pet.imageUrl == null
+                                  ? Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.pets, size: 40, color: AppTheme.primaryColor),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Add Photo',
+                                        style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
+                                  )
+                                  : null,
                         ),
-                      ),
-                    ],
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: CircleAvatar(
+                            radius: 18,
+                            backgroundColor: AppTheme.primaryColor,
+                            child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-              // Pet Name
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Pet Name',
-                  hintText: 'Enter your pet\'s name',
-                  prefixIcon: Icon(Icons.pets),
+                // Pet Name
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Pet Name',
+                    hintText: 'Enter your pet\'s name',
+                    prefixIcon: Icon(Icons.pets),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your pet\'s name';
+                    }
+                    if (value.length < AppConstants.petNameMinLength) {
+                      return 'Name must be at least ${AppConstants.petNameMinLength} characters';
+                    }
+                    if (value.length > AppConstants.petNameMaxLength) {
+                      return 'Name must be at most ${AppConstants.petNameMaxLength} characters';
+                    }
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your pet\'s name';
-                  }
-                  if (value.length < AppConstants.petNameMinLength) {
-                    return 'Name must be at least ${AppConstants.petNameMinLength} characters';
-                  }
-                  if (value.length > AppConstants.petNameMaxLength) {
-                    return 'Name must be at most ${AppConstants.petNameMaxLength} characters';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // Breed
-              DropdownButtonFormField<String>(
-                value: _breedController.text,
-                decoration: const InputDecoration(
-                  labelText: 'Breed',
-                  hintText: 'Select or enter breed',
-                  prefixIcon: Icon(Icons.category),
+                // Breed
+                DropdownButtonFormField<String>(
+                  value: _breedController.text,
+                  decoration: const InputDecoration(
+                    labelText: 'Breed',
+                    hintText: 'Select or enter breed',
+                    prefixIcon: Icon(Icons.category),
+                  ),
+                  items:
+                      _dogBreeds.map((String breed) {
+                        return DropdownMenuItem<String>(value: breed, child: Text(breed));
+                      }).toList(),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        _breedController.text = newValue;
+                      });
+                    }
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please select a breed';
+                    }
+                    return null;
+                  },
                 ),
-                items:
-                    _dogBreeds.map((String breed) {
-                      return DropdownMenuItem<String>(value: breed, child: Text(breed));
-                    }).toList(),
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
+                const SizedBox(height: 16),
+
+                // Gender
+                FormField<String>(
+                  initialValue: _gender,
+                  builder: (FormFieldState<String> state) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Gender'),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: RadioListTile<String>(
+                                title: const Text('Male'),
+                                value: 'Male',
+                                groupValue: _gender,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _gender = value!;
+                                    state.didChange(value);
+                                  });
+                                },
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                            Expanded(
+                              child: RadioListTile<String>(
+                                title: const Text('Female'),
+                                value: 'Female',
+                                groupValue: _gender,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _gender = value!;
+                                    state.didChange(value);
+                                  });
+                                },
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (state.hasError)
+                          Text(
+                            state.errorText!,
+                            style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12),
+                          ),
+                      ],
+                    );
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please select a gender';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Date of Birth
+                FormField<DateTime>(
+                  initialValue: _dateOfBirth,
+                  builder: (FormFieldState<DateTime> state) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Date of Birth'),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: _selectDateOfBirth,
+                          child: InputDecorator(
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(Icons.calendar_today),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                            child: Text(
+                              _dateOfBirth != null ? DateFormat.yMMMd().format(_dateOfBirth!) : 'Select date',
+                            ),
+                          ),
+                        ),
+                        if (state.hasError)
+                          Text(
+                            state.errorText!,
+                            style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12),
+                          ),
+                      ],
+                    );
+                  },
+                  validator: (value) {
+                    if (value == null) {
+                      return 'Please select a date of birth';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Weight
+                TextFormField(
+                  controller: _weightController,
+                  decoration: const InputDecoration(
+                    labelText: 'Weight (kg)',
+                    hintText: 'Enter your pet\'s weight',
+                    prefixIcon: Icon(Icons.fitness_center),
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter weight';
+                    }
+                    if (double.tryParse(value) == null) {
+                      return 'Please enter a valid number';
+                    }
+                    if (double.parse(value) <= 0) {
+                      return 'Weight must be greater than 0';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Neutered/Spayed
+                SwitchListTile(
+                  title: const Text('Neutered/Spayed'),
+                  value: _isNeutered,
+                  onChanged: (value) {
                     setState(() {
-                      _breedController.text = newValue;
+                      _isNeutered = value;
                     });
-                  }
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select a breed';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Gender
-              FormField<String>(
-                initialValue: _gender,
-                builder: (FormFieldState<String> state) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Gender'),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: RadioListTile<String>(
-                              title: const Text('Male'),
-                              value: 'Male',
-                              groupValue: _gender,
-                              onChanged: (value) {
-                                setState(() {
-                                  _gender = value!;
-                                  state.didChange(value);
-                                });
-                              },
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                          Expanded(
-                            child: RadioListTile<String>(
-                              title: const Text('Female'),
-                              value: 'Female',
-                              groupValue: _gender,
-                              onChanged: (value) {
-                                setState(() {
-                                  _gender = value!;
-                                  state.didChange(value);
-                                });
-                              },
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (state.hasError)
-                        Text(
-                          state.errorText!,
-                          style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12),
-                        ),
-                    ],
-                  );
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select a gender';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Date of Birth
-              FormField<DateTime>(
-                initialValue: _dateOfBirth,
-                builder: (FormFieldState<DateTime> state) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Date of Birth'),
-                      const SizedBox(height: 8),
-                      GestureDetector(
-                        onTap: _selectDateOfBirth,
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.calendar_today),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                          child: Text(_dateOfBirth != null ? DateFormat.yMMMd().format(_dateOfBirth!) : 'Select date'),
-                        ),
-                      ),
-                      if (state.hasError)
-                        Text(
-                          state.errorText!,
-                          style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12),
-                        ),
-                    ],
-                  );
-                },
-                validator: (value) {
-                  if (value == null) {
-                    return 'Please select a date of birth';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Weight
-              TextFormField(
-                controller: _weightController,
-                decoration: const InputDecoration(
-                  labelText: 'Weight (kg)',
-                  hintText: 'Enter your pet\'s weight',
-                  prefixIcon: Icon(Icons.fitness_center),
+                  },
+                  contentPadding: EdgeInsets.zero,
                 ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter weight';
-                  }
-                  if (double.tryParse(value) == null) {
-                    return 'Please enter a valid number';
-                  }
-                  if (double.parse(value) <= 0) {
-                    return 'Weight must be greater than 0';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 24),
 
-              // Neutered/Spayed
-              SwitchListTile(
-                title: const Text('Neutered/Spayed'),
-                value: _isNeutered,
-                onChanged: (value) {
-                  setState(() {
-                    _isNeutered = value;
-                  });
-                },
-                contentPadding: EdgeInsets.zero,
-              ),
-              const SizedBox(height: 24),
-
-              // Buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  OutlinedButton(onPressed: _toggleEditing, child: const Text('Cancel')),
-                  const SizedBox(width: 16),
-                  ElevatedButton(onPressed: _savePet, child: const Text('Save Changes')),
-                ],
-              ),
-            ],
+                // Buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(width: 120, child: OutlinedButton(onPressed: _toggleEditing, child: const Text('Cancel'))),
+                    const SizedBox(width: 16),
+                    SizedBox(width: 120, child: ElevatedButton(onPressed: _savePet, child: const Text('Save Changes'))),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -6,6 +6,8 @@ import 'package:dogshield_ai/core/constants/app_constants.dart';
 import 'package:dogshield_ai/core/constants/app_theme.dart';
 import 'package:dogshield_ai/core/utils/router.dart';
 import 'package:dogshield_ai/core/auth/auth_wrapper.dart';
+import 'package:dogshield_ai/services/notification_service.dart';
+import 'package:dogshield_ai/data/services/reminder_service.dart';
 
 // Firebase imports
 import 'package:firebase_core/firebase_core.dart';
@@ -25,18 +27,45 @@ void main() async {
   // Initialize Firebase
   bool firebaseInitialized = false;
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    // Check if Firebase is already initialized
+    try {
+      Firebase.app();
+      firebaseInitialized = true;
+      print('Firebase already initialized');
+    } catch (e) {
+      // Firebase not initialized, so initialize it
+      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-    await FirebaseAppCheck.instance.activate(
-      androidProvider: AndroidProvider.debug,
-      appleProvider: AppleProvider.appAttest,
-    );
+      await FirebaseAppCheck.instance.activate(
+        androidProvider: AndroidProvider.debug,
+        appleProvider: AppleProvider.appAttest,
+      );
 
-    firebaseInitialized = true;
-    print('Firebase initialized successfully');
+      firebaseInitialized = true;
+      print('Firebase initialized successfully');
+    }
   } catch (e) {
     print('Failed to initialize Firebase: $e');
     print('App will run with limited functionality');
+  }
+
+  // ALWAYS Initialize notification service regardless of Firebase status
+  try {
+    print('*** DogShield: Starting notification service initialization ***');
+    final notificationService = NotificationService();
+    await notificationService.initialize();
+    print('*** DogShield: Notification service initialized with 30-second background monitoring ***');
+
+    // Initialize reminder service and set up the connection
+    final reminderService = ReminderService();
+    reminderService.setNotificationService(notificationService);
+    print('*** DogShield: Services connected successfully ***');
+
+    // Check for overdue reminders when app starts
+    await notificationService.checkForOverdueReminders();
+    print('*** DogShield: Completed initial overdue reminder check ***');
+  } catch (e) {
+    print('*** DogShield: CRITICAL ERROR - Failed to initialize notification service: $e');
   }
 
   runApp(

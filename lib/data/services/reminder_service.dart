@@ -4,13 +4,25 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:dogshield_ai/core/constants/app_constants.dart';
 import 'package:dogshield_ai/data/models/reminder_model.dart';
+import 'package:dogshield_ai/services/notification_service.dart';
 import 'package:uuid/uuid.dart';
 
 class ReminderService {
+  // Singleton pattern to ensure a single shared instance across the app
+  static final ReminderService _instance = ReminderService._internal();
+  factory ReminderService() => _instance;
+  ReminderService._internal();
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final Uuid _uuid = Uuid();
+  NotificationService? _notificationService;
+
+  // Method to set notification service to avoid circular dependency
+  void setNotificationService(NotificationService notificationService) {
+    _notificationService = notificationService;
+  }
 
   // Get all reminders for a specific pet
   Future<List<Reminder>> getPetReminders(String petId) async {
@@ -21,18 +33,14 @@ class ReminderService {
         throw Exception('User not logged in');
       }
 
-      final snapshot = await _firestore
-          .collection(AppConstants.remindersCollection)
-          .where('petId', isEqualTo: petId)
-          .get();
+      final snapshot =
+          await _firestore.collection(AppConstants.remindersCollection).where('petId', isEqualTo: petId).get();
 
-      final reminders = snapshot.docs
-          .map((doc) => Reminder.fromMap(doc.data()))
-          .toList();
-          
+      final reminders = snapshot.docs.map((doc) => Reminder.fromMap(doc.data())).toList();
+
       // Sort manually instead of using orderBy to avoid Firebase index issues
       reminders.sort((a, b) => a.date.compareTo(b.date));
-      
+
       return reminders;
     } catch (e) {
       print('Error getting reminders: $e');
@@ -53,28 +61,22 @@ class ReminderService {
       }
 
       // Get all pets for the current user
-      final petsSnapshot = await _firestore
-          .collection(AppConstants.petsCollection)
-          .where('ownerId', isEqualTo: user.uid)
-          .get();
+      final petsSnapshot =
+          await _firestore.collection(AppConstants.petsCollection).where('ownerId', isEqualTo: user.uid).get();
 
       final petIds = petsSnapshot.docs.map((doc) => doc.id).toList();
-      
+
       if (petIds.isEmpty) return [];
 
       // Get reminders for all pets
-      final remindersSnapshot = await _firestore
-          .collection(AppConstants.remindersCollection)
-          .where('petId', whereIn: petIds)
-          .get();
+      final remindersSnapshot =
+          await _firestore.collection(AppConstants.remindersCollection).where('petId', whereIn: petIds).get();
 
-      final reminders = remindersSnapshot.docs
-          .map((doc) => Reminder.fromMap(doc.data()))
-          .toList();
-          
+      final reminders = remindersSnapshot.docs.map((doc) => Reminder.fromMap(doc.data())).toList();
+
       // Sort manually instead of using orderBy to avoid Firebase index issues
       reminders.sort((a, b) => a.date.compareTo(b.date));
-      
+
       return reminders;
     } catch (e) {
       print('Error getting all reminders: $e');
@@ -92,35 +94,32 @@ class ReminderService {
       if (user == null) throw Exception('User not logged in');
 
       // Get all pets for the current user
-      final petsSnapshot = await _firestore
-          .collection(AppConstants.petsCollection)
-          .where('ownerId', isEqualTo: user.uid)
-          .get();
+      final petsSnapshot =
+          await _firestore.collection(AppConstants.petsCollection).where('ownerId', isEqualTo: user.uid).get();
 
       final petIds = petsSnapshot.docs.map((doc) => doc.id).toList();
-      
+
       if (petIds.isEmpty) return [];
 
       // Get all reminders for the user's pets
-      final remindersSnapshot = await _firestore
-          .collection(AppConstants.remindersCollection)
-          .where('petId', whereIn: petIds)
-          .get();
+      final remindersSnapshot =
+          await _firestore.collection(AppConstants.remindersCollection).where('petId', whereIn: petIds).get();
 
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      
+
       // Filter and sort in memory to avoid compound query index issues
-      final reminders = remindersSnapshot.docs
-          .map((doc) => Reminder.fromMap(doc.data()))
-          .where((reminder) => 
-            !reminder.isCompleted && 
-            reminder.date.isAfter(today.subtract(const Duration(days: 1))))
-          .toList();
-          
+      final reminders =
+          remindersSnapshot.docs
+              .map((doc) => Reminder.fromMap(doc.data()))
+              .where(
+                (reminder) => !reminder.isCompleted && reminder.date.isAfter(today.subtract(const Duration(days: 1))),
+              )
+              .toList();
+
       // Sort by date
       reminders.sort((a, b) => a.date.compareTo(b.date));
-      
+
       return reminders;
     } catch (e) {
       print('Error getting upcoming reminders: $e');
@@ -145,13 +144,10 @@ class ReminderService {
       if (user == null) throw Exception('User not logged in');
 
       // Verify that the pet exists and belongs to the user
-      final petDoc = await _firestore
-          .collection(AppConstants.petsCollection)
-          .doc(petId)
-          .get();
+      final petDoc = await _firestore.collection(AppConstants.petsCollection).doc(petId).get();
 
       if (!petDoc.exists) throw Exception('Pet not found');
-      
+
       final petData = petDoc.data();
       if (petData == null || petData['ownerId'] != user.uid) {
         throw Exception('You do not have permission to add reminders for this pet');
@@ -171,10 +167,10 @@ class ReminderService {
         additionalInfo: additionalInfo,
       );
 
-      await _firestore
-          .collection(AppConstants.remindersCollection)
-          .doc(reminderId)
-          .set(reminder.toMap());
+      await _firestore.collection(AppConstants.remindersCollection).doc(reminderId).set(reminder.toMap());
+
+      // Schedule notification for the reminder if notification service is available
+      await _notificationService?.scheduleReminderNotification(reminder);
 
       return reminder;
     } catch (e) {
@@ -207,14 +203,11 @@ class ReminderService {
         additionalInfo: 'Dosage: $dosage',
       ).then((reminder) {
         // Update with medication-specific fields
-        return _firestore
-            .collection(AppConstants.remindersCollection)
-            .doc(reminder.id)
-            .update({
-              'dosage': dosage,
-            }).then((_) {
-              return reminder.copyWith(dosage: dosage);
-            });
+        return _firestore.collection(AppConstants.remindersCollection).doc(reminder.id).update({'dosage': dosage}).then(
+          (_) {
+            return reminder.copyWith(dosage: dosage);
+          },
+        );
       });
     } catch (e) {
       print('Error adding medication reminder: $e');
@@ -249,14 +242,9 @@ class ReminderService {
         return _firestore
             .collection(AppConstants.remindersCollection)
             .doc(reminder.id)
-            .update({
-              'portion': portion,
-              'mealType': mealType,
-            }).then((_) {
-              return reminder.copyWith(
-                portion: portion,
-                mealType: mealType,
-              );
+            .update({'portion': portion, 'mealType': mealType})
+            .then((_) {
+              return reminder.copyWith(portion: portion, mealType: mealType);
             });
       });
     } catch (e) {
@@ -264,7 +252,7 @@ class ReminderService {
       throw Exception('Failed to add feeding reminder');
     }
   }
-  
+
   // Add generic reminder
   Future<Reminder> addGenericReminder({
     required String petId,
@@ -319,20 +307,13 @@ class ReminderService {
       }
 
       // Update with vaccination-specific fields
-      await _firestore
-          .collection(AppConstants.remindersCollection)
-          .doc(reminder.id)
-          .update({
-            'vetClinic': vetClinic,
-            'nextDueDate': nextDueDate?.toIso8601String(),
-            'vaccineRecordUrl': vaccineRecordUrl,
-          });
+      await _firestore.collection(AppConstants.remindersCollection).doc(reminder.id).update({
+        'vetClinic': vetClinic,
+        'nextDueDate': nextDueDate?.toIso8601String(),
+        'vaccineRecordUrl': vaccineRecordUrl,
+      });
 
-      return reminder.copyWith(
-        vetClinic: vetClinic,
-        nextDueDate: nextDueDate,
-        vaccineRecordUrl: vaccineRecordUrl,
-      );
+      return reminder.copyWith(vetClinic: vetClinic, nextDueDate: nextDueDate, vaccineRecordUrl: vaccineRecordUrl);
     } catch (e) {
       print('Error adding vaccination reminder: $e');
       throw Exception('Failed to add vaccination reminder');
@@ -346,35 +327,26 @@ class ReminderService {
       if (user == null) throw Exception('User not logged in');
 
       // Get the reminder
-      final reminderDoc = await _firestore
-          .collection(AppConstants.remindersCollection)
-          .doc(reminderId)
-          .get();
+      final reminderDoc = await _firestore.collection(AppConstants.remindersCollection).doc(reminderId).get();
 
       if (!reminderDoc.exists) throw Exception('Reminder not found');
-      
+
       final reminder = Reminder.fromMap(reminderDoc.data() as Map<String, dynamic>);
 
       // Verify pet ownership
-      final petDoc = await _firestore
-          .collection(AppConstants.petsCollection)
-          .doc(reminder.petId)
-          .get();
+      final petDoc = await _firestore.collection(AppConstants.petsCollection).doc(reminder.petId).get();
 
       if (!petDoc.exists) throw Exception('Pet not found');
-      
+
       final petData = petDoc.data();
       if (petData == null || petData['ownerId'] != user.uid) {
         throw Exception('You do not have permission to update this reminder');
       }
 
       // Update reminder status
-      await _firestore
-          .collection(AppConstants.remindersCollection)
-          .doc(reminderId)
-          .update({
-            'isCompleted': isCompleted,
-          });
+      await _firestore.collection(AppConstants.remindersCollection).doc(reminderId).update({
+        'isCompleted': isCompleted,
+      });
 
       return reminder.copyWith(isCompleted: isCompleted);
     } catch (e) {
@@ -390,23 +362,17 @@ class ReminderService {
       if (user == null) throw Exception('User not logged in');
 
       // Get the reminder
-      final reminderDoc = await _firestore
-          .collection(AppConstants.remindersCollection)
-          .doc(reminderId)
-          .get();
+      final reminderDoc = await _firestore.collection(AppConstants.remindersCollection).doc(reminderId).get();
 
       if (!reminderDoc.exists) throw Exception('Reminder not found');
-      
+
       final reminder = Reminder.fromMap(reminderDoc.data() as Map<String, dynamic>);
 
       // Verify pet ownership
-      final petDoc = await _firestore
-          .collection(AppConstants.petsCollection)
-          .doc(reminder.petId)
-          .get();
+      final petDoc = await _firestore.collection(AppConstants.petsCollection).doc(reminder.petId).get();
 
       if (!petDoc.exists) throw Exception('Pet not found');
-      
+
       final petData = petDoc.data();
       if (petData == null || petData['ownerId'] != user.uid) {
         throw Exception('You do not have permission to delete this reminder');
@@ -423,10 +389,7 @@ class ReminderService {
       }
 
       // Delete the reminder
-      await _firestore
-          .collection(AppConstants.remindersCollection)
-          .doc(reminderId)
-          .delete();
+      await _firestore.collection(AppConstants.remindersCollection).doc(reminderId).delete();
     } catch (e) {
       print('Error deleting reminder: $e');
       throw Exception('Failed to delete reminder');
@@ -441,10 +404,10 @@ class ReminderService {
 
       final fileName = 'vaccine_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final ref = _storage.ref().child('vaccine_records/$fileName');
-      
+
       final uploadTask = await ref.putFile(file);
       final downloadUrl = await uploadTask.ref.getDownloadURL();
-      
+
       return downloadUrl;
     } catch (e) {
       print('Error uploading vaccine record: $e');

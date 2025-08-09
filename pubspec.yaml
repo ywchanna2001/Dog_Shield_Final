@@ -74,6 +74,10 @@ dependencies:
   # Calendar & Reminders
   table_calendar: ^3.0.9
   timezone: ^0.9.2
+  flutter_local_notifications: ^17.2.0
+
+  # Utils - Database
+  uuid: ^4.3.3
 
 dev_dependencies:
   flutter_launcher_icons: "^0.13.1"
