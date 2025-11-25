@@ -21,6 +21,7 @@ class AppConstants {
   static const String detectionHistoryRoute = '/detection-history';
   static const String reminderRoute = '/reminders';
   static const String addReminderRoute = '/add-reminder';
+  static const String remindersRoute = '/reminders';
   static const String notificationsRoute = '/notifications';
   static const String settingsRoute = '/settings';
 

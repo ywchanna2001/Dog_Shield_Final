@@ -6,6 +6,7 @@ import 'package:dogshield_ai/core/constants/app_constants.dart';
 import 'package:dogshield_ai/data/models/reminder_model.dart';
 import 'package:dogshield_ai/services/notification_service.dart';
 import 'package:uuid/uuid.dart';
+import 'dart:math';
 
 class ReminderService {
   // Singleton pattern to ensure a single shared instance across the app
@@ -17,12 +18,9 @@ class ReminderService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final Uuid _uuid = Uuid();
-  NotificationService? _notificationService;
 
-  // Method to set notification service to avoid circular dependency
-  void setNotificationService(NotificationService notificationService) {
-    _notificationService = notificationService;
-  }
+  // Directly instantiate the notification service
+  final NotificationService _notificationService = NotificationService();
 
   // Get all reminders for a specific pet
   Future<List<Reminder>> getPetReminders(String petId) async {
@@ -128,57 +126,70 @@ class ReminderService {
   }
 
   // Add new reminder (generic base)
-  Future<Reminder> _addReminderBase({
-    required String petId,
-    required String title,
-    required String description,
-    required DateTime date,
-    required String type,
-    bool repeat = false,
-    String? frequency,
-    DateTime? endDate,
-    String? additionalInfo,
-  }) async {
-    try {
-      final user = _auth.currentUser;
-      if (user == null) throw Exception('User not logged in');
 
-      // Verify that the pet exists and belongs to the user
-      final petDoc = await _firestore.collection(AppConstants.petsCollection).doc(petId).get();
+Future<Reminder> _addReminderBase({
+  required String petId,
+  required String title,
+  required String description,
+  required DateTime date,
+  required String type,
+  bool repeat = false,
+  String? frequency,
+  DateTime? endDate,
+  String? additionalInfo,
+}) async {
+  try {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('User not logged in');
 
-      if (!petDoc.exists) throw Exception('Pet not found');
-
-      final petData = petDoc.data();
-      if (petData == null || petData['ownerId'] != user.uid) {
-        throw Exception('You do not have permission to add reminders for this pet');
-      }
-
-      final reminderId = _uuid.v4();
-      final reminder = Reminder(
-        id: reminderId,
-        petId: petId,
-        title: title,
-        description: description,
-        date: date,
-        type: type,
-        repeat: repeat,
-        frequency: frequency,
-        endDate: endDate,
-        additionalInfo: additionalInfo,
-      );
-
-      await _firestore.collection(AppConstants.remindersCollection).doc(reminderId).set(reminder.toMap());
-
-      // Schedule notification for the reminder if notification service is available
-      await _notificationService?.scheduleReminderNotification(reminder);
-
-      return reminder;
-    } catch (e) {
-      print('Error adding reminder: $e');
-      throw Exception('Failed to add reminder');
+    // pet ownership verification logic ...
+    final petDoc = await _firestore.collection(AppConstants.petsCollection).doc(petId).get();
+    if (!petDoc.exists) throw Exception('Pet not found');
+    final petData = petDoc.data();
+    if (petData == null || petData['ownerId'] != user.uid) {
+      throw Exception('You do not have permission to add reminders for this pet');
     }
-  }
 
+    // 1. GENERATE A UNIQUE INTEGER ID FOR THE NOTIFICATION
+    // We use a large random number. The max value is 2^31 - 1 for Android.
+    final notificationId = Random().nextInt(2147483647);
+
+    final reminderId = _uuid.v4();
+    final reminder = Reminder(
+      id: reminderId,
+      petId: petId,
+      title: title,
+      description: description,
+      date: date,
+      type: type,
+      repeat: repeat,
+      frequency: frequency,
+      endDate: endDate,
+      additionalInfo: additionalInfo,
+      notificationId: notificationId, 
+    );
+
+    await _firestore.collection(AppConstants.remindersCollection).doc(reminderId).set(reminder.toMap());
+
+    print('✅ Reminder saved to Firestore with ID: $reminderId');
+    print('⏰ Scheduling notification with ID: $notificationId for time: ${date.toLocal()}');
+
+    // 3. SCHEDULE THE NOTIFICATION with the same ID
+    await _notificationService.scheduleNotification(
+      id: notificationId,
+      title: 'Reminder: $title',
+      body: description.isNotEmpty ? description : 'A new reminder for your pet is due.',
+      scheduledDate: date,
+    );
+
+    print('✅ Notification successfully scheduled!');
+
+    return reminder;
+  } catch (e) {
+    print('Error adding reminder: $e');
+    throw Exception('Failed to add reminder');
+  }
+}
   // Add medication reminder
   Future<Reminder> addMedicationReminder({
     required String petId,
@@ -328,19 +339,20 @@ class ReminderService {
 
       // Get the reminder
       final reminderDoc = await _firestore.collection(AppConstants.remindersCollection).doc(reminderId).get();
-
       if (!reminderDoc.exists) throw Exception('Reminder not found');
-
       final reminder = Reminder.fromMap(reminderDoc.data() as Map<String, dynamic>);
 
       // Verify pet ownership
       final petDoc = await _firestore.collection(AppConstants.petsCollection).doc(reminder.petId).get();
-
       if (!petDoc.exists) throw Exception('Pet not found');
-
       final petData = petDoc.data();
       if (petData == null || petData['ownerId'] != user.uid) {
         throw Exception('You do not have permission to update this reminder');
+      }
+
+      // <-- IMPORTANT: IF MARKING AS COMPLETE, CANCEL THE NOTIFICATION
+      if (isCompleted) {
+        await _notificationService.cancelNotification(reminder.notificationId);
       }
 
       // Update reminder status
@@ -363,20 +375,19 @@ class ReminderService {
 
       // Get the reminder
       final reminderDoc = await _firestore.collection(AppConstants.remindersCollection).doc(reminderId).get();
-
       if (!reminderDoc.exists) throw Exception('Reminder not found');
-
       final reminder = Reminder.fromMap(reminderDoc.data() as Map<String, dynamic>);
 
       // Verify pet ownership
       final petDoc = await _firestore.collection(AppConstants.petsCollection).doc(reminder.petId).get();
-
       if (!petDoc.exists) throw Exception('Pet not found');
-
       final petData = petDoc.data();
       if (petData == null || petData['ownerId'] != user.uid) {
         throw Exception('You do not have permission to delete this reminder');
       }
+
+      // <-- IMPORTANT: ALWAYS CANCEL THE NOTIFICATION WHEN DELETING
+      await _notificationService.cancelNotification(reminder.notificationId);
 
       // Delete vaccine record if exists
       if (reminder.vaccineRecordUrl != null) {

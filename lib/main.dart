@@ -8,11 +8,15 @@ import 'package:dogshield_ai/core/utils/router.dart';
 import 'package:dogshield_ai/core/auth/auth_wrapper.dart';
 import 'package:dogshield_ai/services/notification_service.dart';
 import 'package:dogshield_ai/data/services/reminder_service.dart';
+import 'package:permission_handler/permission_handler.dart'; 
+
 
 // Firebase imports
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'firebase_options.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,19 +55,16 @@ void main() async {
 
   // ALWAYS Initialize notification service regardless of Firebase status
   try {
-    print('*** DogShield: Starting notification service initialization ***');
+    print('*** DogShield: Initializing new notification service ***');
     final notificationService = NotificationService();
     await notificationService.initialize();
-    print('*** DogShield: Notification service initialized with 30-second background monitoring ***');
+    await notificationService.requestPermissions(); 
 
-    // Initialize reminder service and set up the connection
-    final reminderService = ReminderService();
-    reminderService.setNotificationService(notificationService);
-    print('*** DogShield: Services connected successfully ***');
+    if (await Permission.scheduleExactAlarm.isDenied) {
+      await Permission.scheduleExactAlarm.request();
+    }
 
-    // Check for overdue reminders when app starts
-    await notificationService.checkForOverdueReminders();
-    print('*** DogShield: Completed initial overdue reminder check ***');
+    print('*** DogShield: Notification service initialized successfully. ***');
   } catch (e) {
     print('*** DogShield: CRITICAL ERROR - Failed to initialize notification service: $e');
   }
@@ -105,6 +106,7 @@ class DogShieldApp extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(
+          navigatorKey: navigatorKey,
           title: AppConstants.appName,
           theme: themeProvider.themeData,
           debugShowCheckedModeBanner: false,

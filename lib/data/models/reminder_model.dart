@@ -12,6 +12,7 @@ class Reminder {
   final String? frequency;
   final DateTime? endDate;
   final String? additionalInfo;
+  final int notificationId;
 
   // For medication
   final String? dosage;
@@ -43,6 +44,7 @@ class Reminder {
     this.vetClinic,
     this.vaccineRecordUrl,
     this.nextDueDate,
+    required this.notificationId
   });
 
   Map<String, dynamic> toMap() {
@@ -64,6 +66,7 @@ class Reminder {
       'vetClinic': vetClinic,
       'vaccineRecordUrl': vaccineRecordUrl,
       'nextDueDate': nextDueDate?.toIso8601String(),
+      'notificationId': notificationId,
     };
   }
 
@@ -86,6 +89,7 @@ class Reminder {
       vetClinic: map['vetClinic'],
       vaccineRecordUrl: map['vaccineRecordUrl'],
       nextDueDate: map['nextDueDate'] != null ? DateTime.parse(map['nextDueDate']) : null,
+      notificationId: map['notificationId'] ?? 0,
     );
   }
 
@@ -111,6 +115,7 @@ class Reminder {
     String? vetClinic,
     String? vaccineRecordUrl,
     DateTime? nextDueDate,
+    int? notificationId,
   }) {
     return Reminder(
       id: id ?? this.id,
@@ -130,6 +135,7 @@ class Reminder {
       vetClinic: vetClinic ?? this.vetClinic,
       vaccineRecordUrl: vaccineRecordUrl ?? this.vaccineRecordUrl,
       nextDueDate: nextDueDate ?? this.nextDueDate,
+      notificationId: notificationId ?? this.notificationId,
     );
   }
 }
