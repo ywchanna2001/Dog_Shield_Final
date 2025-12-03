@@ -4,6 +4,7 @@ import 'package:dogshield_ai/core/constants/app_theme.dart';
 import 'package:dogshield_ai/data/services/auth_service.dart';
 import 'package:dogshield_ai/data/models/user_model.dart' as user_model;
 import 'package:dogshield_ai/presentation/widgets/bottom_navigation.dart';
+import 'package:dogshield_ai/presentation/screens/profile/edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -256,12 +257,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               leading: const Icon(Icons.edit),
               title: const Text('Edit Profile'),
               onTap: () {
-                // TODO: Navigate to Edit Profile screen
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Edit Profile coming soon'),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditProfileScreen(user: _user!),
                   ),
-                );
+                ).then((updated) {
+                  if (updated == true) {
+                    _loadUserProfile(); // Refresh profile data
+                  }
+                });
               },
             ),
             ListTile(
