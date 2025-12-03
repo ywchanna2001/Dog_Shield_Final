@@ -40,6 +40,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
 
   List<Reminder> _petReminders = [];
   bool _loadingReminders = true;
+  bool _deleteImage = false;
 
   // State Management Fix: Initialize the list here
   List<String> _dogBreeds = [
@@ -152,6 +153,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
         _dateOfBirth = _pet.dateOfBirth;
         _isNeutered = _pet.isNeutered;
         _newPetImage = null;
+        _deleteImage = false;
       }
     });
   }
@@ -191,12 +193,15 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
         isNeutered: _isNeutered,
         weight: double.parse(_weightController.text),
         newImage: _newPetImage,
+        deleteImage: _deleteImage,
       );
       if (!mounted) return;
       setState(() {
         _pet = updatedPet;
         _isLoading = false;
         _isEditing = false;
+        _deleteImage = false;
+        _newPetImage = null;
       });
 
       ScaffoldMessenger.of(
@@ -207,6 +212,8 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
       setState(() {
         _errorMessage = 'Failed to update pet: $e';
         _isLoading = false;
+        _deleteImage = false;
+        _newPetImage = null;
       });
 
       ScaffoldMessenger.of(
@@ -305,9 +312,9 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                   child: CircleAvatar(
                     radius: 60,
                     backgroundColor: AppTheme.primaryColor.withOpacity(0.2),
-                    backgroundImage: _pet.imageUrl != null ? NetworkImage(_pet.imageUrl!) : null,
+                    backgroundImage: (_pet.imageUrl != null && !_deleteImage) ? NetworkImage(_pet.imageUrl!) : null,
                     child:
-                        _pet.imageUrl == null ? const Icon(Icons.pets, size: 60, color: AppTheme.primaryColor) : null,
+                      (_pet.imageUrl == null || _deleteImage)  ? const Icon(Icons.pets, size: 60, color: AppTheme.primaryColor) : null,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -512,11 +519,11 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                           backgroundImage:
                               _newPetImage != null
                                   ? FileImage(_newPetImage!)
-                                  : _pet.imageUrl != null
+                                  : (_pet.imageUrl != null && !_deleteImage)
                                   ? NetworkImage(_pet.imageUrl!)
                                   : null,
                           child:
-                              _newPetImage == null && _pet.imageUrl == null
+                              (_newPetImage == null && (_pet.imageUrl == null || _deleteImage))
                                   ? Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
@@ -539,6 +546,27 @@ class _PetProfileScreenState extends State<PetProfileScreen> with SingleTickerPr
                             child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
                           ),
                         ),
+                        if ((_pet.imageUrl != null && !_deleteImage) || _newPetImage != null)
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  if (_newPetImage != null) {
+                                    _newPetImage = null;
+                                  } else {
+                                    _deleteImage = true;
+                                  }
+                                });
+                              },
+                              child: CircleAvatar(
+                                radius: 18,
+                                backgroundColor: AppTheme.primaryColor,
+                                child: const Icon(Icons.delete, size: 18, color: Colors.white),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),

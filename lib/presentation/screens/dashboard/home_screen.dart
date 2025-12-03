@@ -127,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               )
                               : null,
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 5),
                     Text(
                       user?.name ?? 'Loading...',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white),
@@ -254,7 +254,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 24),
 
             // Health Tips
-            _buildHealthTips(),
+            // _buildHealthTips(),
 
             // Extra space for floating action button
             const SizedBox(height: 80),
@@ -285,9 +285,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildPetCard(Pet pet) {
     return GestureDetector(
-      onTap: () {
-        // Navigate to pet profile screen
-        Navigator.pushNamed(context, AppConstants.petProfileRoute, arguments: pet);
+      onTap: () async { // <-- Add async
+        // Navigate to pet profile screen,Wait for PetProfileRoute to pop
+        await Navigator.pushNamed(context, AppConstants.petProfileRoute, arguments: pet);
+        _loadData();
       },
       child: Container(
         width: 160,
@@ -596,47 +597,47 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHealthTips() {
-    return Card(
-      color: AppTheme.primaryColor,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.tips_and_updates, color: Colors.white),
-                const SizedBox(width: 8),
-                Text(
-                  'Health Tip',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Regular exercise is essential for your dog\'s physical and mental health. Aim for at least 30 minutes of activity each day.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white),
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {
-                  // TODO: Navigate to health tips screen
-                },
-                style: TextButton.styleFrom(foregroundColor: Colors.white),
-                child: const Text('Read More'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // Widget _buildHealthTips() {
+  //   return Card(
+  //     color: AppTheme.primaryColor,
+  //     child: Padding(
+  //       padding: const EdgeInsets.all(16.0),
+  //       child: Column(
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           Row(
+  //             children: [
+  //               const Icon(Icons.tips_and_updates, color: Colors.white),
+  //               const SizedBox(width: 8),
+  //               Text(
+  //                 'Health Tip',
+  //                 style: Theme.of(
+  //                   context,
+  //                 ).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+  //               ),
+  //             ],
+  //           ),
+  //           const SizedBox(height: 8),
+  //           Text(
+  //             'Regular exercise is essential for your dog\'s physical and mental health. Aim for at least 30 minutes of activity each day.',
+  //             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white),
+  //           ),
+  //           const SizedBox(height: 8),
+  //           Align(
+  //             alignment: Alignment.centerRight,
+  //             child: TextButton(
+  //               onPressed: () {
+  //                 // TODO: Navigate to health tips screen
+  //               },
+  //               style: TextButton.styleFrom(foregroundColor: Colors.white),
+  //               child: const Text('Read More'),
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildEmptyState({required IconData icon, required String message}) {
     return Center(
