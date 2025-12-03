@@ -246,40 +246,6 @@ class AuthService {
     }
   }
 
-  // Update user profile
-  // Future<void> updateUserProfile({
-  //   String? name,
-  //   String? photoURL,
-  // }) async {
-  //   try {
-  //     final User? user = _auth.currentUser;
-  //     if (user == null) throw Exception('User not logged in');
-  //
-  //     if (name != null) {
-  //       await user.updateDisplayName(name);
-  //       await _firestore
-  //           .collection(AppConstants.usersCollection)
-  //           .doc(user.uid)
-  //           .update({
-  //         'name': name,
-  //       });
-  //     }
-  //
-  //     if (photoURL != null) {
-  //       await user.updatePhotoURL(photoURL);
-  //       await _firestore
-  //           .collection(AppConstants.usersCollection)
-  //           .doc(user.uid)
-  //           .update({
-  //         'imageUrl': photoURL,
-  //       });
-  //     }
-  //   } catch (e) {
-  //     print('Error updating profile: $e');
-  //     throw Exception('Failed to update profile');
-  //   }
-  // }
-
   // Update user profile with image upload support
   Future<void> updateUserProfile({
     required String userId,
