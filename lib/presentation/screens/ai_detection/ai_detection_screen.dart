@@ -275,11 +275,13 @@ class _AIDetectionScreenState extends State<AIDetectionScreen> with TickerProvid
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Lottie.asset(
-            '${AppConstants.animationPath}analyzing.json',
-            width: 150,
-            height: 150,
-            controller: _animationController,
+          SizedBox(
+            width: 30,
+            height: 30,
+            child: CircularProgressIndicator(
+              strokeWidth: 4,
+              color: AppTheme.primaryColor,
+            ),
           ),
           const SizedBox(height: 24),
           Text(
@@ -415,38 +417,20 @@ class _AIDetectionScreenState extends State<AIDetectionScreen> with TickerProvid
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: 24),
-            // Action buttons based on risk level
-            if (_analysisResult!.riskLevel.toLowerCase() == 'high' ||
-                _analysisResult!.riskLevel.toLowerCase() == 'medium')
-              ElevatedButton.icon(
-                onPressed: () {
-                  // TODO: Implement find vet feature
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('Finding nearby vets... (To be implemented)')));
-                },
-                icon: const Icon(Icons.local_hospital),
-                label: const Text('Consult a Veterinarian'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-              )
-            else
-              ElevatedButton.icon(
-                onPressed: () {
-                  // TODO: Implement reminder setting
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('Setting reminder... (To be implemented)')));
-                },
-                icon: const Icon(Icons.calendar_today),
-                label: const Text('Set Regular Check Reminder'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
-                  minimumSize: const Size(double.infinity, 48),
-                ),
+            ElevatedButton.icon(
+              onPressed: () {
+                // TODO: Implement reminder setting
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Setting reminder... (To be implemented)')));
+              },
+              icon: const Icon(Icons.calendar_today),
+              label: const Text('Set Regular Check Reminder'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                minimumSize: const Size(double.infinity, 48),
               ),
+            ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: _resetDetection,

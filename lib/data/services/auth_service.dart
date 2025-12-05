@@ -4,11 +4,14 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dogshield_ai/core/constants/app_constants.dart';
 import 'package:dogshield_ai/data/models/user_model.dart' as model;
+import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   // Get current user
   User? get currentUser => _auth.currentUser;
@@ -243,39 +246,100 @@ class AuthService {
     }
   }
 
-  // Update user profile
+  // Update user profile with image upload support
   Future<void> updateUserProfile({
+    required String userId,
     String? name,
-    String? photoURL,
+    File? newImage,
+    bool deleteImage = false,
   }) async {
     try {
-      final User? user = _auth.currentUser;
-      if (user == null) throw Exception('User not logged in');
+      final userDoc = await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(userId)
+          .get();
+
+      if (!userDoc.exists) throw Exception('User not found');
+
+      final currentUserData = userDoc.data() as Map<String, dynamic>;
+      final currentImageUrl = currentUserData['imageUrl'] as String?;
+
+      // Start with current user's imageUrl
+      String? finalImageUrl = currentImageUrl;
+
+      // STEP 1: Handle image deletion
+      if (deleteImage && currentImageUrl != null) {
+        try {
+          await _storage.refFromURL(currentImageUrl).delete();
+        } catch (e) {
+          print('Could not delete image (may not exist): $e');
+        }
+        finalImageUrl = null;
+      }
+
+      // STEP 2: Handle new image upload (this overrides deletion)
+      if (newImage != null) {
+        if (currentImageUrl != null && !deleteImage) {
+          try {
+            await _storage.refFromURL(currentImageUrl).delete();
+          } catch (e) {
+            print('Could not delete old image: $e');
+          }
+        }
+        // Upload new image
+        finalImageUrl = await _uploadUserImage(newImage, userId);
+      }
+
+      // STEP 3: Create update map
+      Map<String, dynamic> updateData = {};
 
       if (name != null) {
-        await user.updateDisplayName(name);
-        await _firestore
-            .collection(AppConstants.usersCollection)
-            .doc(user.uid)
-            .update({
-          'name': name,
-        });
+        updateData['name'] = name;
+        // Update Firebase Auth display name
+        final user = _auth.currentUser;
+        if (user != null) {
+          await user.updateDisplayName(name);
+        }
       }
 
-      if (photoURL != null) {
-        await user.updatePhotoURL(photoURL);
-        await _firestore
-            .collection(AppConstants.usersCollection)
-            .doc(user.uid)
-            .update({
-          'imageUrl': photoURL,
-        });
+      // Always update imageUrl (can be null)
+      updateData['imageUrl'] = finalImageUrl;
+
+      // Update Firebase Auth photo URL if we have a new image
+      if (finalImageUrl != null) {
+        final user = _auth.currentUser;
+        if (user != null) {
+          await user.updatePhotoURL(finalImageUrl);
+        }
       }
+
+      // Update Firestore
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(userId)
+          .update(updateData);
     } catch (e) {
-      print('Error updating profile: $e');
+      print('Error updating user profile: $e');
       throw Exception('Failed to update profile');
     }
   }
+
+  // Upload user image to Firebase Storage
+  Future<String> _uploadUserImage(File image, String userId) async {
+    try {
+      final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final ref = _storage.ref().child('user_images/$fileName');
+
+      final uploadTask = await ref.putFile(image);
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+      return downloadUrl;
+    } catch (e) {
+      print('Error uploading user image: $e');
+      throw Exception('Failed to upload user image');
+    }
+  }
+
   // Get current user profile from Firestore
   Future<model.User?> getCurrentUser() async {
     try {

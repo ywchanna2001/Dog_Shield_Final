@@ -91,9 +91,10 @@ class PetService {
           .set(pet.toMap());
 
       return pet;
-    } catch (e) {
-      print('Error adding pet: $e');
-      throw Exception('Failed to add pet');
+    } catch (e, stack) {
+      print('IMAGE UPLOAD ERROR: $e');
+      print(stack);
+      rethrow;
     }
   }
 
@@ -107,6 +108,7 @@ class PetService {
     bool? isNeutered,
     double? weight,
     File? newImage,
+    bool deleteImage = false,
   }) async {
     try {
       final user = _auth.currentUser;
@@ -119,39 +121,64 @@ class PetService {
           .get();
 
       if (!petDoc.exists) throw Exception('Pet not found');
-      
+
       final currentPet = Pet.fromMap(petDoc.data() as Map<String, dynamic>);
-      
+
       // Check if pet belongs to current user
       if (currentPet.ownerId != user.uid) {
         throw Exception('You do not have permission to update this pet');
       }
 
-      // Upload new image if provided
-      String? imageUrl = currentPet.imageUrl;
-      if (newImage != null) {
-        imageUrl = await _uploadPetImage(newImage);
+      // Start with current pet's imageUrl
+      String? finalImageUrl = currentPet.imageUrl;
+
+      // STEP 1: Handle image deletion
+      if (deleteImage && currentPet.imageUrl != null) {
+        try {
+          await _storage.refFromURL(currentPet.imageUrl!).delete();
+        } catch (e) {
+          print('Could not delete image (may not exist): $e');
+        }
+        finalImageUrl = null;
       }
 
-      // Update pet with new data
-      final updatedPet = currentPet.copyWith(
-        name: name,
-        breed: breed,
-        dateOfBirth: dateOfBirth,
-        gender: gender,
-        isNeutered: isNeutered,
-        weight: weight,
-        imageUrl: imageUrl,
-      );
+      // STEP 2: Handle new image upload (this overrides deletion)
+      if (newImage != null) {
+        if (currentPet.imageUrl != null && !deleteImage) {
+          try {
+            await _storage.refFromURL(currentPet.imageUrl!).delete();
+          } catch (e) {
+            print('Could not delete old image: $e');
+          }
+        }
+        // Upload new image
+        finalImageUrl = await _uploadPetImage(newImage);
+      }
 
+      // STEP 3: Create update map manually
+      Map<String, dynamic> updateData = {
+        'name': name ?? currentPet.name,
+        'breed': breed ?? currentPet.breed,
+        'dateOfBirth': (dateOfBirth ?? currentPet.dateOfBirth).toIso8601String(),
+        'gender': gender ?? currentPet.gender,
+        'isNeutered': isNeutered ?? currentPet.isNeutered,
+        'weight': weight ?? currentPet.weight,
+        'imageUrl': finalImageUrl,  // This can be null!
+        'ownerId': currentPet.ownerId,
+        'id': petId,
+      };
+
+      // Update Firestore
       await _firestore
           .collection(AppConstants.petsCollection)
           .doc(petId)
-          .update(updatedPet.toMap());
+          .update(updateData);
 
-      return updatedPet;
-    } catch (e) {
+      // Return updated pet
+      return Pet.fromMap(updateData);
+    } catch (e, stackTrace) {
       print('Error updating pet: $e');
+      print(stackTrace);
       throw Exception('Failed to update pet');
     }
   }
