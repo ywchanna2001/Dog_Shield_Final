@@ -36,6 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      // Implement Firebase authentication
       final authService = AuthService();
       await authService.signInWithEmailAndPassword(
         _emailController.text.trim(),
@@ -43,10 +44,11 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted) {
-        // Navigation is handled by AuthWrapper's StreamBuilder
+        // Navigate to home screen
         Navigator.pushReplacementNamed(context, AppConstants.homeRoute);
       }
     } catch (e) {
+      // Show error message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
