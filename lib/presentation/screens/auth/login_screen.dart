@@ -44,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (mounted) {
         // Navigation is handled by AuthWrapper's StreamBuilder
-        // No need to manually navigate
+        Navigator.pushReplacementNamed(context, AppConstants.homeRoute);
       }
     } catch (e) {
       if (mounted) {
