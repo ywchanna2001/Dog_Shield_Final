@@ -88,6 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         // Success - Navigation is handled by AuthWrapper's StreamBuilder
         if (mounted) {
+          Navigator.pushReplacementNamed(context, AppConstants.homeRoute);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Welcome, ${user.displayName ?? 'User'}!'),
