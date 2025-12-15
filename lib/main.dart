@@ -38,7 +38,7 @@ void main() async {
       try {
         Firebase.app();
         firebaseInitialized = true;
-        print('✅ Firebase already initialized');
+        print('Firebase already initialized');
       } catch (e) {
         await Firebase.initializeApp(
             options: DefaultFirebaseOptions.currentPlatform
@@ -50,24 +50,24 @@ void main() async {
         );
 
         firebaseInitialized = true;
-        print('✅ Firebase initialized successfully');
+        print('Firebase initialized successfully');
       }
     } catch (e) {
-      print('⚠️ Firebase initialization failed: $e');
+      print('Firebase initialization failed: $e');
       print('App will continue with limited functionality');
     }
 
     // Initialize notification service - WITH BETTER ERROR HANDLING
     bool notificationInitialized = false;
     try {
-      print('🔔 Initializing notification service...');
+      print('Initializing notification service...');
       final notificationService = NotificationService();
 
       await notificationService.initialize();
-      print('✅ Notification service initialized');
+      print('Notification service initialized');
 
       await notificationService.requestPermissions();
-      print('✅ Notification permissions requested');
+      print('Notification permissions requested');
 
       // Request Android 12+ exact alarm permission
       try {
@@ -75,7 +75,7 @@ void main() async {
           await Permission.scheduleExactAlarm.request();
         }
       } catch (e) {
-        print('⚠️ Exact alarm permission error (non-critical): $e');
+        print('Exact alarm permission error (non-critical): $e');
       }
 
       // Request Android 13+ notification permission
@@ -84,13 +84,13 @@ void main() async {
           await Permission.notification.request();
         }
       } catch (e) {
-        print('⚠️ Notification permission error (non-critical): $e');
+        print('Notification permission error (non-critical): $e');
       }
 
       notificationInitialized = true;
-      print('✅ Notification service fully initialized');
+      print('Notification service fully initialized');
     } catch (e, stackTrace) {
-      print('⚠️ Notification initialization failed: $e');
+      print('Notification initialization failed: $e');
       print('Stack trace: $stackTrace');
       print('App will continue without notifications');
     }
@@ -105,7 +105,7 @@ void main() async {
       ),
     );
   }, (error, stack) {
-    print('💥 FATAL ERROR: $error');
+    print('FATAL ERROR: $error');
     print('Stack trace: $stack');
   });
 }
@@ -155,7 +155,7 @@ class DogShieldApp extends StatelessWidget {
             }
             // Notification failure is non-critical, just log it
             if (!notificationInitialized) {
-              print('⚠️ Running without notifications');
+              print('Running without notifications');
             }
             return child!;
           },
