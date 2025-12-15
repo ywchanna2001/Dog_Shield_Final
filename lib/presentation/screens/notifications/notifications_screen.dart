@@ -96,28 +96,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         title: const Text('Notifications'),
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
-        // actions: [
-        //   IconButton(
-        //     icon: const Icon(Icons.notifications_active),
-        //     onPressed: () async {
-        //       try {
-        //         await _notificationService.showTestNotification();
-        //         if (mounted) {
-        //           ScaffoldMessenger.of(context).showSnackBar(
-        //             const SnackBar(content: Text('Test notification sent! Check your device notifications.')),
-        //           );
-        //         }
-        //       } catch (e) {
-        //         if (mounted) {
-        //           ScaffoldMessenger.of(
-        //             context,
-        //           ).showSnackBar(SnackBar(content: Text('Notification error: $e'), backgroundColor: Colors.red));
-        //         }
-        //       }
-        //     },
-        //   ),
-        //   IconButton(icon: const Icon(Icons.refresh), onPressed: _loadNotifications),
-        // ],
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_active),
@@ -227,30 +205,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
             const SizedBox(height: 8),
             Text('You\'re all caught up!', style: TextStyle(fontSize: 14, color: Colors.grey[500])),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () async {
-                try {
-                  await _notificationService.showTestNotification();
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Test notification sent to your device! Check your notification panel.'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error sending notification: $e'), backgroundColor: Colors.red),
-                    );
-                  }
-                }
-              },
-              icon: const Icon(Icons.notifications_active),
-              label: const Text('Test Mobile Notification'),
-            ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: () async {
