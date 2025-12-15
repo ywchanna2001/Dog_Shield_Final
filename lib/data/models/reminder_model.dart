@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Reminder {
   final String id;
@@ -13,6 +14,7 @@ class Reminder {
   final DateTime? endDate;
   final String? additionalInfo;
   final int notificationId;
+  final DateTime createdAt; // ADDED THIS FIELD
 
   // For medication
   final String? dosage;
@@ -25,7 +27,7 @@ class Reminder {
   final String? vetClinic;
   final String? vaccineRecordUrl;
   final DateTime? nextDueDate;
-  
+
   Reminder({
     required this.id,
     required this.petId,
@@ -44,10 +46,74 @@ class Reminder {
     this.vetClinic,
     this.vaccineRecordUrl,
     this.nextDueDate,
-    required this.notificationId
-  });
+    required this.notificationId,
+    DateTime? createdAt, // ADDED THIS PARAMETER
+  }) : createdAt = createdAt ?? DateTime.now();
 
+  // For Firestore (uses Timestamp)
   Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'petId': petId,
+      'title': title,
+      'description': description,
+      'date': Timestamp.fromDate(date),
+      'type': type,
+      'isCompleted': isCompleted,
+      'repeat': repeat,
+      'frequency': frequency,
+      'endDate': endDate != null ? Timestamp.fromDate(endDate!) : null,
+      'additionalInfo': additionalInfo,
+      'dosage': dosage,
+      'portion': portion,
+      'mealType': mealType,
+      'vetClinic': vetClinic,
+      'vaccineRecordUrl': vaccineRecordUrl,
+      'nextDueDate': nextDueDate != null ? Timestamp.fromDate(nextDueDate!) : null,
+      'notificationId': notificationId,
+      'createdAt': Timestamp.fromDate(createdAt), // ADDED THIS
+    };
+  }
+
+  // From Firestore (converts Timestamp to DateTime)
+  factory Reminder.fromMap(Map<String, dynamic> map) {
+    return Reminder(
+      id: map['id'] ?? '',
+      petId: map['petId'] ?? '',
+      title: map['title'] ?? '',
+      description: map['description'] ?? '',
+      date: _parseDate(map['date']),
+      type: map['type'] ?? '',
+      isCompleted: map['isCompleted'] ?? false,
+      repeat: map['repeat'] ?? false,
+      frequency: map['frequency'],
+      endDate: map['endDate'] != null ? _parseDate(map['endDate']) : null,
+      additionalInfo: map['additionalInfo'],
+      dosage: map['dosage'],
+      portion: map['portion'],
+      mealType: map['mealType'],
+      vetClinic: map['vetClinic'],
+      vaccineRecordUrl: map['vaccineRecordUrl'],
+      nextDueDate: map['nextDueDate'] != null ? _parseDate(map['nextDueDate']) : null,
+      notificationId: map['notificationId'] ?? 0,
+      createdAt: map['createdAt'] != null ? _parseDate(map['createdAt']) : DateTime.now(), // ADDED THIS
+    );
+  }
+
+  // Helper method to parse both Timestamp and String dates
+  static DateTime _parseDate(dynamic date) {
+    if (date is Timestamp) {
+      return date.toDate();
+    } else if (date is String) {
+      return DateTime.parse(date);
+    } else if (date is DateTime) {
+      return date;
+    }
+    return DateTime.now();
+  }
+
+  // For JSON serialization (uses ISO8601 strings)
+  Map<String, dynamic> toJsonMap() {
     return {
       'id': id,
       'petId': petId,
@@ -67,10 +133,14 @@ class Reminder {
       'vaccineRecordUrl': vaccineRecordUrl,
       'nextDueDate': nextDueDate?.toIso8601String(),
       'notificationId': notificationId,
+      'createdAt': createdAt.toIso8601String(), // ADDED THIS
     };
   }
 
-  factory Reminder.fromMap(Map<String, dynamic> map) {
+  String toJson() => json.encode(toJsonMap());
+
+  factory Reminder.fromJson(String source) {
+    final map = json.decode(source) as Map<String, dynamic>;
     return Reminder(
       id: map['id'] ?? '',
       petId: map['petId'] ?? '',
@@ -90,12 +160,9 @@ class Reminder {
       vaccineRecordUrl: map['vaccineRecordUrl'],
       nextDueDate: map['nextDueDate'] != null ? DateTime.parse(map['nextDueDate']) : null,
       notificationId: map['notificationId'] ?? 0,
+      createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : DateTime.now(), // ADDED THIS
     );
   }
-
-  String toJson() => json.encode(toMap());
-
-  factory Reminder.fromJson(String source) => Reminder.fromMap(json.decode(source));
 
   Reminder copyWith({
     String? id,
@@ -116,6 +183,7 @@ class Reminder {
     String? vaccineRecordUrl,
     DateTime? nextDueDate,
     int? notificationId,
+    DateTime? createdAt, // ADDED THIS
   }) {
     return Reminder(
       id: id ?? this.id,
@@ -136,6 +204,7 @@ class Reminder {
       vaccineRecordUrl: vaccineRecordUrl ?? this.vaccineRecordUrl,
       nextDueDate: nextDueDate ?? this.nextDueDate,
       notificationId: notificationId ?? this.notificationId,
+      createdAt: createdAt ?? this.createdAt, // ADDED THIS
     );
   }
 }
