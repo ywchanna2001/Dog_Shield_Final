@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordVisible = false;
   bool _rememberMe = false;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   @override
   void dispose() {
@@ -24,6 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _passwordController.dispose();
     super.dispose();
   }
+
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -40,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _emailController.text.trim(),
         _passwordController.text,
       );
-      
+
       if (mounted) {
         // Navigate to home screen
         Navigator.pushReplacementNamed(context, AppConstants.homeRoute);
@@ -59,6 +61,56 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isGoogleLoading = true;
+    });
+
+    try {
+      final authService = AuthService();
+      final user = await authService.signInWithGoogle();
+
+      if (user == null) {
+        // User cancelled the sign-in
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Google sign-in was cancelled'),
+              backgroundColor: AppTheme.warningColor,
+            ),
+          );
+        }
+      } else {
+        // Success - Navigation is handled by AuthWrapper's StreamBuilder
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, AppConstants.homeRoute);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Welcome, ${user.displayName ?? 'User'}!'),
+              backgroundColor: AppTheme.successColor,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Google sign-in failed: ${e.toString()}'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGoogleLoading = false;
         });
       }
     }
@@ -184,35 +236,57 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 32),
                   // Sign in button
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _login,
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Sign In'),
-                  ),
-                  const SizedBox(height: 24),
-                  // Social sign in
-                  Center(
-                    child: Text(
-                      'OR',
-                      style: Theme.of(context).textTheme.bodySmall,
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _login,
+                      child: _isLoading
+                          ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                          : const Text('Sign In'),
                     ),
                   ),
                   const SizedBox(height: 24),
-                  // Google sign in
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      // TODO: Implement Google sign in
-                    },
-                    icon: const Icon(Icons.g_mobiledata),
-                    label: const Text('Sign in with Google'),
+                  // Divider with OR
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: Colors.grey[400])),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'OR',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                      Expanded(child: Divider(color: Colors.grey[400])),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  // Google sign in button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: OutlinedButton.icon(
+                      onPressed: _isGoogleLoading ? null : _signInWithGoogle,
+                      icon: _isGoogleLoading
+                          ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                          : const Icon(Icons.g_mobiledata, size: 28),
+                      label: Text(_isGoogleLoading ? 'Signing in...' : 'Sign in with Google'),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.grey[400]!),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 40),
                   // Register link
@@ -239,4 +313,4 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-} 
+}

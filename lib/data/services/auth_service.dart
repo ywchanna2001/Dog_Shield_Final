@@ -16,6 +16,9 @@ class AuthService {
   // Get current user
   User? get currentUser => _auth.currentUser;
 
+  // Auth state stream
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
+
   // Sign in with email and password
   Future<User?> signInWithEmailAndPassword(String email, String password) async {
     try {
@@ -82,6 +85,9 @@ class AuthService {
   // Sign in with Google
   Future<User?> signInWithGoogle() async {
     try {
+      // Sign out from Google first to ensure clean state
+      await _googleSignIn.signOut();
+
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) return null;
 
