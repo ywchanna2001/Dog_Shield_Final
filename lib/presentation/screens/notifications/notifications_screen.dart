@@ -99,24 +99,77 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_active),
+            tooltip: 'Test Notification',
             onPressed: () async {
               try {
                 await _notificationService.showTestNotification();
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Test notification sent! Check your device notifications.')),
+                    const SnackBar(
+                      content: Text('Test notification sent! Check your notification panel.'),
+                      backgroundColor: Colors.green,
+                    ),
                   );
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text('Notification error: $e'), backgroundColor: Colors.red));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
                 }
               }
             },
           ),
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadNotifications),
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'Notification Status',
+            onPressed: () async {
+              try {
+                final status = await _notificationService.getNotificationStatus();
+                if (mounted) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Notification Status'),
+                      content: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('Enabled: ${status['enabled']}'),
+                            Text('Exact Alarm: ${status['exactAlarmEnabled']}'),
+                            Text('Pending: ${status['pendingNotifications']}'),
+                            const SizedBox(height: 8),
+                            if ((status['pendingIds'] as List).isNotEmpty)
+                              Text('IDs: ${(status['pendingIds'] as List).join(', ')}'),
+                          ],
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('OK'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
+              }
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadNotifications,
+          ),
         ],
       ),
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : _buildBody(),
@@ -152,30 +205,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
             const SizedBox(height: 8),
             Text('You\'re all caught up!', style: TextStyle(fontSize: 14, color: Colors.grey[500])),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () async {
-                try {
-                  await _notificationService.showTestNotification();
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Test notification sent to your device! Check your notification panel.'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error sending notification: $e'), backgroundColor: Colors.red),
-                    );
-                  }
-                }
-              },
-              icon: const Icon(Icons.notifications_active),
-              label: const Text('Test Mobile Notification'),
-            ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: () async {
